@@ -16,10 +16,13 @@ build/
 .env.production.local
 backend/.env
 frontend/.env
+*/.env
 
 # Sensitive files
 backend/serviceAccountKey.json
 serviceAccountKey.json
+**/serviceAccountKey.json
+firebase-service-account.json
 
 # Logs
 npm-debug.log*
