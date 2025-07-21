@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Recipes collection - anyone can read, only authenticated users can write
+    match /recipes/{recipeId} {
+      allow read: if true; // Public read access for recipes
+      allow write: if request.auth != null; // Only authenticated users can create/update recipes
+      
+      // Recipe likes subcollection
+      match /likes/{likeId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+    
+    // User likes collection - users can only access their own likes
+    match /userLikes/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /recipes/{recipeId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Popular recipes collection - public read, authenticated write
+    match /popularRecipes/{recipeId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Analytics/stats collection - authenticated users only
+    match /analytics/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
