@@ -6,7 +6,7 @@ require('dotenv').config();
 
 // Import our modules
 const { db, admin } = require('./firebase');
-const { generateRecipe, getYouTubeSearchUrl } = require('./llm');
+const { generateRecipe, getYouTubeSearchUrl, getYouTubeVideos } = require('./llm');
 const { 
   generateRecipeId, 
   validateRecipeData, 
@@ -51,6 +51,45 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// POST /api/recipe/suggestions - Get recipe suggestions based on user input
+app.post('/api/recipe/suggestions', async (req, res) => {
+  try {
+    const { query } = req.body;
+    
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ 
+        error: 'Query is required and must be a string' 
+      });
+    }
+    
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length === 0) {
+      return res.json({ suggestions: [] });
+    }
+    
+    // If query is very short (1-2 characters), don't provide suggestions
+    if (trimmedQuery.length < 3) {
+      return res.json({ suggestions: [] });
+    }
+    
+    // Generate intelligent recipe suggestions using OpenAI
+    const { generateRecipeSuggestions } = require('./llm');
+    const suggestions = await generateRecipeSuggestions(trimmedQuery);
+    
+    res.json({ 
+      suggestions: suggestions || [],
+      query: trimmedQuery
+    });
+    
+  } catch (error) {
+    console.error('Error generating recipe suggestions:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while generating suggestions',
+      suggestions: []
+    });
+  }
+});
+
 // POST /api/recipe/generate - Generate or retrieve a recipe
 app.post('/api/recipe/generate', async (req, res) => {
   try {
@@ -78,26 +117,26 @@ app.post('/api/recipe/generate', async (req, res) => {
     if (recipeDoc.exists) {
       const existingRecipe = recipeDoc.data();
       
-      // Check if recipe is fresh (less than 24 hours old)
-      if (isRecipeFresh(existingRecipe.lastSearched?.toDate())) {
-        // Update search count and last searched time
-        await recipeRef.update({
-          lastSearched: new Date(),
-          searchCount: (existingRecipe.searchCount || 0) + 1
-        });
-        
-        // Add YouTube search URL
-        const youtubeUrl = getYouTubeSearchUrl(recipeName);
-        
-        res.json({
-          ...existingRecipe,
-          lastSearched: new Date(),
-          searchCount: (existingRecipe.searchCount || 0) + 1,
-          youtubeUrl,
-          cached: true
-        });
-        return;
-      }
+      console.log(`Found existing recipe for: ${recipeName}`);
+      
+      // Always return existing recipe (removed freshness check)
+      // Update search count and last searched time
+      await recipeRef.update({
+        lastSearched: new Date(),
+        searchCount: (existingRecipe.searchCount || 0) + 1
+      });
+      
+      // Add YouTube search URL if not present
+      const youtubeUrl = existingRecipe.youtubeUrl || getYouTubeSearchUrl(recipeName);
+      
+      res.json({
+        ...existingRecipe,
+        lastSearched: new Date(),
+        searchCount: (existingRecipe.searchCount || 0) + 1,
+        youtubeUrl,
+        cached: true
+      });
+      return;
     }
     
     // Generate new recipe using OpenAI
@@ -309,6 +348,34 @@ app.get('/api/recipes/popular', async (req, res) => {
     console.error('Error fetching popular recipes:', error);
     res.status(500).json({ 
       error: 'Internal server error while fetching popular recipes' 
+    });
+  }
+});
+
+// GET /api/recipe/:recipeId/videos - Get YouTube videos for a recipe
+app.get('/api/recipe/:recipeId/videos', async (req, res) => {
+  try {
+    const { recipeId } = req.params;
+    
+    // Get recipe from database to get the recipe name
+    const recipeDoc = await db.collection('recipes').doc(recipeId).get();
+    
+    if (!recipeDoc.exists) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+    
+    const recipe = recipeDoc.data();
+    const recipeName = recipe.displayName || recipe.recipeName;
+    
+    // Fetch YouTube videos
+    const videos = await getYouTubeVideos(recipeName);
+    
+    res.json({ videos });
+    
+  } catch (error) {
+    console.error('Error fetching YouTube videos:', error);
+    res.status(500).json({ 
+      error: 'Internal server error while fetching videos' 
     });
   }
 });

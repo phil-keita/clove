@@ -86,17 +86,54 @@ Return only valid JSON, no additional text.`;
       throw new Error('Invalid or missing estimated time in recipe');
     }
 
-    // Validate ingredient structure
-    for (const ingredient of recipe.ingredients) {
-      if (!ingredient.name || !ingredient.quantity || !ingredient.unit) {
-        throw new Error('Invalid ingredient structure - missing name, quantity, or unit');
+    // Validate ingredient structure - more flexible validation
+    for (let i = 0; i < recipe.ingredients.length; i++) {
+      const ingredient = recipe.ingredients[i];
+      
+      // If ingredient is a string, try to parse it
+      if (typeof ingredient === 'string') {
+        // Try to parse "2 cups flour" format
+        const parts = ingredient.trim().split(' ');
+        if (parts.length >= 3) {
+          recipe.ingredients[i] = {
+            quantity: parts[0],
+            unit: parts[1],
+            name: parts.slice(2).join(' ')
+          };
+        } else {
+          // Set default values for missing parts
+          recipe.ingredients[i] = {
+            name: ingredient,
+            quantity: "1",
+            unit: "piece"
+          };
+        }
+      } else if (typeof ingredient === 'object') {
+        // Ensure all required fields exist, set defaults if missing
+        if (!ingredient.name) ingredient.name = "Unknown ingredient";
+        if (!ingredient.quantity) ingredient.quantity = "1";
+        if (!ingredient.unit) ingredient.unit = "piece";
+      } else {
+        throw new Error(`Invalid ingredient format at index ${i}`);
       }
     }
 
-    // Validate step structure
-    for (const step of recipe.steps) {
-      if (!step.description || typeof step.description !== 'string') {
-        throw new Error('Invalid step structure - missing or invalid description');
+    // Validate step structure - more flexible validation
+    for (let i = 0; i < recipe.steps.length; i++) {
+      const step = recipe.steps[i];
+      
+      // If step is a string, convert it to object format
+      if (typeof step === 'string') {
+        recipe.steps[i] = {
+          description: step
+        };
+      } else if (typeof step === 'object') {
+        // Ensure description exists
+        if (!step.description || typeof step.description !== 'string') {
+          throw new Error(`Invalid step structure at index ${i} - missing or invalid description`);
+        }
+      } else {
+        throw new Error(`Invalid step format at index ${i}`);
       }
     }
 
@@ -121,6 +158,91 @@ Return only valid JSON, no additional text.`;
 }
 
 /**
+ * Generate recipe suggestions based on user input with typo correction
+ * @param {string} query - User's search query
+ * @returns {Promise<Array<string>>} - Array of up to 5 recipe suggestions
+ */
+async function generateRecipeSuggestions(query) {
+  try {
+    const prompt = `Based on the user's search query "${query}", provide up to 5 recipe title suggestions that are most likely what they're looking for.
+
+Rules:
+- Correct any obvious typos or misspellings
+- If the query is very general (like "chicken"), suggest popular variations
+- Return realistic, popular recipe names
+- Prioritize common and well-known recipes
+- Return only the recipe titles, nothing else
+- Return as a JSON array of strings
+
+Examples:
+Query: "parmedan chicken" → ["Parmesan Chicken", "Chicken Parmesan", "Baked Parmesan Chicken", "Crispy Parmesan Chicken", "Parmesan Crusted Chicken"]
+Query: "chicken" → ["Grilled Chicken", "Chicken Stir Fry", "Chicken Curry", "Fried Chicken", "Chicken Soup"]
+Query: "pasta" → ["Spaghetti Carbonara", "Chicken Alfredo Pasta", "Penne Arrabbiata", "Lasagna", "Mac and Cheese"]
+
+Return only a JSON array of strings, no additional text.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful cooking assistant that suggests recipe names based on user queries. Always return valid JSON arrays of recipe titles."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.7
+    });
+
+    const response = completion.choices[0].message.content.trim();
+    
+    try {
+      const parsed = JSON.parse(response);
+      
+      let suggestions;
+      
+      // Handle different response formats
+      if (Array.isArray(parsed)) {
+        // Direct array format
+        suggestions = parsed;
+      } else if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
+        // Object with suggestions array
+        suggestions = parsed.suggestions;
+      } else if (parsed.recipeTitles && Array.isArray(parsed.recipeTitles)) {
+        // Object with recipeTitles array
+        suggestions = parsed.recipeTitles;
+      } else if (parsed.recipe_titles && Array.isArray(parsed.recipe_titles)) {
+        // Object with recipe_titles array
+        suggestions = parsed.recipe_titles;
+      } else {
+        console.error('Invalid suggestions format:', parsed);
+        return [];
+      }
+      
+      // Validate that all items are strings
+      if (suggestions.every(item => typeof item === 'string')) {
+        // Return up to 5 suggestions
+        return suggestions.slice(0, 5);
+      } else {
+        console.error('Suggestions contain non-string items:', suggestions);
+        return [];
+      }
+    } catch (parseError) {
+      console.error('Error parsing suggestions JSON:', parseError);
+      console.error('Raw response:', response);
+      return [];
+    }
+    
+  } catch (error) {
+    console.error('Error generating recipe suggestions:', error);
+    return [];
+  }
+}
+
+/**
  * Search for YouTube videos related to the recipe
  * @param {string} recipeName - Name of the recipe
  * @returns {string} - YouTube search URL
@@ -130,7 +252,50 @@ function getYouTubeSearchUrl(recipeName) {
   return `https://www.youtube.com/results?search_query=${searchQuery}`;
 }
 
+/**
+ * Fetch top YouTube videos for a recipe using YouTube Data API
+ * @param {string} recipeName - Name of the recipe
+ * @returns {Promise<Array>} - Array of top 3 video results
+ */
+async function getYouTubeVideos(recipeName) {
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  
+  if (!YOUTUBE_API_KEY) {
+    console.warn('YouTube API key not found. Video search disabled.');
+    return [];
+  }
+
+  try {
+    const searchQuery = encodeURIComponent(`${recipeName} recipe cooking tutorial`);
+    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${searchQuery}&key=${YOUTUBE_API_KEY}`;
+    
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error('YouTube API error:', data.error);
+      return [];
+    }
+    
+    return data.items?.map(item => ({
+      videoId: item.id.videoId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      thumbnail: item.snippet.thumbnails.medium.url,
+      channelTitle: item.snippet.channelTitle,
+      publishedAt: item.snippet.publishedAt,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+    })) || [];
+    
+  } catch (error) {
+    console.error('Error fetching YouTube videos:', error);
+    return [];
+  }
+}
+
 module.exports = {
   generateRecipe,
-  getYouTubeSearchUrl
+  generateRecipeSuggestions,
+  getYouTubeSearchUrl,
+  getYouTubeVideos
 };

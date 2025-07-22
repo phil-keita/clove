@@ -4,7 +4,7 @@ This guide will walk you through setting up all the required API keys and creden
 
 ## 📋 **Prerequisites**
 
-- [ ] Google/Gmail account (for Firebase)
+- [ ] Google/Gmail account (for Firebase and YouTube API)
 - [ ] OpenAI account (for recipe generation)
 - [ ] Basic understanding of environment variables
 
@@ -85,7 +85,34 @@ const firebaseConfig = {
 - Add payment method
 - Set usage limits for safety
 
-## ⚙️ **3. Configure Environment Variables**
+## ⚙️ **3. YouTube Data API Setup**
+
+### Step 1: Enable YouTube Data API
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select your Firebase project (or create a new one)
+3. Navigate to **APIs & Services** > **Library**
+4. Search for "YouTube Data API v3"
+5. Click on it and press **Enable**
+
+### Step 2: Create API Credentials
+
+1. Go to **APIs & Services** > **Credentials**
+2. Click **Create Credentials** > **API Key**
+3. Copy the generated API key
+4. (Optional) Click on the key to restrict it:
+   - **Application restrictions**: None (or HTTP referrers for production)
+   - **API restrictions**: Restrict key to "YouTube Data API v3"
+5. Save the restrictions
+
+### Step 3: Verify Setup
+
+- Test the API key by making a request:
+  ```bash
+  curl "https://www.googleapis.com/youtube/v3/search?part=snippet&q=pasta+recipe&type=video&maxResults=3&key=YOUR_API_KEY"
+  ```
+
+## ⚙️ **4. Configure Environment Variables**
 
 ### Frontend Configuration
 
@@ -137,6 +164,9 @@ const firebaseConfig = {
    # Your OpenAI API key
    OPENAI_API_KEY=sk-proj-abcd1234efgh5678ijkl9012mnop3456qrst7890uvwx
    
+   # Your YouTube Data API key
+   YOUTUBE_API_KEY=AIzaSyC1234567890abcdefghijklmnopqrstuv
+   
    # Path to your service account JSON file
    GOOGLE_APPLICATION_CREDENTIALS=./serviceAccountKey.json
    
@@ -146,7 +176,7 @@ const firebaseConfig = {
    CORS_ORIGIN=http://localhost:5173
    ```
 
-## 🚀 **4. Test the Setup**
+## 🚀 **5. Test the Setup**
 
 ### Start the Backend
 

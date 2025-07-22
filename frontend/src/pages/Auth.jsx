@@ -48,7 +48,7 @@ const Auth = () => {
               Welcome to Clove
             </Heading>
             
-            <Text fontSize="lg" color="gray.600" mb={8}>
+            <Text fontSize="lg" color="gray.600" mb={2}>
               Join our community of home chefs and discover amazing recipes
             </Text>
           </MotionBox>

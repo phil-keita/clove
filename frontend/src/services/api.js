@@ -51,6 +51,16 @@ export const apiService = {
     }
   },
 
+  // Get recipe suggestions based on user input
+  getRecipeSuggestions: async (query) => {
+    try {
+      const response = await api.post('/api/recipe/suggestions', { query });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to get recipe suggestions');
+    }
+  },
+
   // Get recipe by ID
   getRecipeById: async (recipeId) => {
     try {
