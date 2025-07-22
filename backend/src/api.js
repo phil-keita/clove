@@ -6,7 +6,8 @@ require('dotenv').config();
 
 // Import our modules
 const { db, admin } = require('./firebase');
-const { generateRecipe, getYouTubeSearchUrl, getYouTubeVideos } = require('./llm');
+const { generateRecipe, getYouTubeSearchUrl } = require('./llm');
+const { searchRecipeVideos } = require('./youtube');
 const { 
   generateRecipeId, 
   validateRecipeData, 
@@ -117,26 +118,26 @@ app.post('/api/recipe/generate', async (req, res) => {
     if (recipeDoc.exists) {
       const existingRecipe = recipeDoc.data();
       
-      console.log(`Found existing recipe for: ${recipeName}`);
-      
-      // Always return existing recipe (removed freshness check)
-      // Update search count and last searched time
-      await recipeRef.update({
-        lastSearched: new Date(),
-        searchCount: (existingRecipe.searchCount || 0) + 1
-      });
-      
-      // Add YouTube search URL if not present
-      const youtubeUrl = existingRecipe.youtubeUrl || getYouTubeSearchUrl(recipeName);
-      
-      res.json({
-        ...existingRecipe,
-        lastSearched: new Date(),
-        searchCount: (existingRecipe.searchCount || 0) + 1,
-        youtubeUrl,
-        cached: true
-      });
-      return;
+      // Check if recipe is fresh (less than 24 hours old)
+      if (isRecipeFresh(existingRecipe.lastSearched?.toDate())) {
+        // Update search count and last searched time
+        await recipeRef.update({
+          lastSearched: new Date(),
+          searchCount: (existingRecipe.searchCount || 0) + 1
+        });
+        
+        // Add YouTube search URL
+        const youtubeUrl = getYouTubeSearchUrl(recipeName);
+        
+        res.json({
+          ...existingRecipe,
+          lastSearched: new Date(),
+          searchCount: (existingRecipe.searchCount || 0) + 1,
+          youtubeUrl,
+          cached: true
+        });
+        return;
+      }
     }
     
     // Generate new recipe using OpenAI
@@ -357,25 +358,99 @@ app.get('/api/recipe/:recipeId/videos', async (req, res) => {
   try {
     const { recipeId } = req.params;
     
-    // Get recipe from database to get the recipe name
-    const recipeDoc = await db.collection('recipes').doc(recipeId).get();
+    if (!recipeId) {
+      return res.status(400).json({ 
+        error: 'Recipe ID is required' 
+      });
+    }
+    
+    // Get the recipe from Firestore to get the recipe name
+    const recipeRef = db.collection('recipes').doc(recipeId);
+    const recipeDoc = await recipeRef.get();
     
     if (!recipeDoc.exists) {
-      return res.status(404).json({ error: 'Recipe not found' });
+      return res.status(404).json({ 
+        error: 'Recipe not found' 
+      });
     }
     
     const recipe = recipeDoc.data();
-    const recipeName = recipe.displayName || recipe.recipeName;
+    const recipeName = recipe.name || recipe.displayName || recipe.recipeName || 'Unknown Recipe';
     
-    // Fetch YouTube videos
-    const videos = await getYouTubeVideos(recipeName);
+    console.log(`Fetching YouTube videos for recipe: ${recipeName} (ID: ${recipeId})`);
     
-    res.json({ videos });
+    // Search for YouTube videos
+    const videoResults = await searchRecipeVideos(recipeName);
+    
+    res.json({
+      success: true,
+      recipeId,
+      recipeName,
+      regularVideos: videoResults.regularVideos || [],
+      shorts: videoResults.shorts || [],
+      totalRegularVideos: videoResults.regularVideos?.length || 0,
+      totalShorts: videoResults.shorts?.length || 0,
+      message: 'Videos fetched successfully'
+    });
     
   } catch (error) {
-    console.error('Error fetching YouTube videos:', error);
+    console.error('Error fetching recipe videos:', error);
     res.status(500).json({ 
-      error: 'Internal server error while fetching videos' 
+      error: 'Failed to fetch recipe videos',
+      message: error.message
+    });
+  }
+});
+
+// POST /api/recipe/:recipeId/analyze-video - Analyze video tutorial for recipe enhancement
+app.post('/api/recipe/:recipeId/analyze-video', async (req, res) => {
+  try {
+    const { recipeId } = req.params;
+    const { videoId, title, channelTitle, description } = req.body;
+    
+    if (!recipeId || !videoId) {
+      return res.status(400).json({ 
+        error: 'Recipe ID and video ID are required' 
+      });
+    }
+    
+    // Get the recipe from Firestore
+    const recipeRef = db.collection('recipes').doc(recipeId);
+    const recipeDoc = await recipeRef.get();
+    
+    if (!recipeDoc.exists) {
+      return res.status(404).json({ 
+        error: 'Recipe not found' 
+      });
+    }
+    
+    const recipe = recipeDoc.data();
+    const videoInfo = {
+      videoId,
+      title: title || 'Unknown Video',
+      channelTitle: channelTitle || 'Unknown Channel',
+      description: description || ''
+    };
+    
+    // Use the video analysis function from LLM module
+    const { analyzeVideoTutorial } = require('./llm');
+    const enhancedRecipe = await analyzeVideoTutorial(recipe, videoInfo);
+    
+    console.log(`Video analysis completed for recipe: ${recipe.name}, video: ${videoInfo.title}`);
+    
+    res.json({
+      success: true,
+      recipeId,
+      videoId,
+      enhancedRecipe,
+      message: 'Video tutorial analyzed successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error analyzing video tutorial:', error);
+    res.status(500).json({ 
+      error: 'OpenAI service error',
+      message: 'Failed to analyze video tutorial'
     });
   }
 });
@@ -396,6 +471,6 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Recipe API server running on port ${PORT}`);
-  console.log(`📝 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`Recipe API server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
 });

@@ -51,62 +51,7 @@ const Home = () => {
       console.error('Error loading popular recipes:', error);
       setError('Failed to load popular recipes. Backend may not be running.');
       // Set some dummy data for UI testing
-      setPopularRecipes([
-        {
-          id: 'dummy-1',
-          name: 'Spaghetti Bolognese',
-          description: 'Classic Italian pasta dish with rich meat sauce, tomatoes, and herbs',
-          prepTime: '45',
-          difficulty: 'Medium',
-          likes: 24,
-          image: 'https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?w=400'
-        },
-        {
-          id: 'dummy-2', 
-          name: 'Chicken Tikka Masala',
-          description: 'Tender chicken in a creamy, spiced tomato sauce served with rice',
-          prepTime: '35',
-          difficulty: 'Medium',
-          likes: 18,
-          image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400'
-        },
-        {
-          id: 'dummy-3',
-          name: 'Chocolate Chip Cookies',
-          description: 'Soft and chewy homemade cookies with chocolate chips',
-          prepTime: '25',
-          difficulty: 'Easy', 
-          likes: 31,
-          image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400'
-        },
-        {
-          id: 'dummy-4',
-          name: 'Caesar Salad',
-          description: 'Fresh romaine lettuce with parmesan, croutons, and caesar dressing',
-          prepTime: '15',
-          difficulty: 'Easy',
-          likes: 12,
-          image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400'
-        },
-        {
-          id: 'dummy-5',
-          name: 'Beef Tacos',
-          description: 'Seasoned ground beef in soft tortillas with fresh toppings',
-          prepTime: '30',
-          difficulty: 'Easy',
-          likes: 22,
-          image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=400'
-        },
-        {
-          id: 'dummy-6',
-          name: 'Margherita Pizza',
-          description: 'Classic pizza with tomato sauce, mozzarella, and fresh basil',
-          prepTime: '40',
-          difficulty: 'Medium',
-          likes: 28,
-          image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400'
-        }
-      ]);
+      setPopularRecipes([]);
     } finally {
       setLoading(false);
     }
@@ -163,20 +108,16 @@ const Home = () => {
             transition={{ duration: 0.6, delay: 0.4 }}
           >
             <VStack align="stretch" spacing={6}>
-              <VStack spacing={2}>
-                <Heading size="lg" textAlign="center">Featured</Heading>
-                <Text
-                  color="orange.500"
-                  cursor="pointer"
-                  fontSize="sm"
-                  fontWeight="medium"
-                  textDecoration="underline"
-                  _hover={{ color: "orange.600" }}
+              <HStack justify="space-between" align="center">
+                <Heading size="lg">Popular Recipes</Heading>
+                <Button
+                  variant="outline"
+                  colorScheme="orange"
                   onClick={() => navigate('/popular')}
                 >
                   View All
-                </Text>
-              </VStack>
+                </Button>
+              </HStack>
 
               {loading ? (
                 <Box textAlign="center" py={8}>
@@ -214,7 +155,7 @@ const Home = () => {
                           {recipe.image && (
                             <Image
                               src={recipe.image}
-                              alt={recipe.displayName || recipe.name}
+                              alt={recipe.name}
                               borderRadius="md"
                               h="200px"
                               objectFit="cover"
@@ -222,7 +163,7 @@ const Home = () => {
                           )}
                           <VStack align="stretch" spacing={2}>
                             <Heading size="md" noOfLines={2}>
-                              {recipe.displayName || recipe.name}
+                              {recipe.name}
                             </Heading>
                             <Text color="gray.600" noOfLines={3} fontSize="sm">
                               {recipe.description}
@@ -237,7 +178,7 @@ const Home = () => {
                                 </Badge>
                               </HStack>
                               <Text fontSize="sm" color="gray.500">
-                                ❤️ {recipe.likes || 0}
+                                {recipe.likes || 0} likes
                               </Text>
                             </HStack>
                           </VStack>

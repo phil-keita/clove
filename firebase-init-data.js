@@ -3,81 +3,88 @@
 
 // Sample data structure for your Clove app
 
+// Firebase Database Initialization Script
+// Sample data structure for your Clove app - Updated to match current schema
+
 const sampleRecipes = [
   {
-    id: 'recipe_1',
-    name: 'Classic Spaghetti Carbonara',
+    recipeId: 'recipe_1',
+    recipeName: 'classic spaghetti carbonara', // normalized lowercase
+    displayName: 'Classic Spaghetti Carbonara', // display version
+    name: 'Classic Spaghetti Carbonara', // frontend compatibility
     description: 'A traditional Italian pasta dish with eggs, cheese, and pancetta',
     ingredients: [
-      '400g spaghetti',
-      '200g pancetta or guanciale',
-      '4 large eggs',
-      '100g Pecorino Romano cheese',
-      'Black pepper',
-      'Salt'
+      { name: 'spaghetti', quantity: '400g', unit: '' },
+      { name: 'pancetta or guanciale', quantity: '200g', unit: '' },
+      { name: 'large eggs', quantity: '4', unit: 'pieces' },
+      { name: 'Pecorino Romano cheese', quantity: '100g', unit: '' },
+      { name: 'black pepper', quantity: 'to taste', unit: '' },
+      { name: 'salt', quantity: 'to taste', unit: '' }
     ],
     steps: [
-      'Boil salted water and cook spaghetti until al dente',
-      'Fry pancetta until crispy',
-      'Whisk eggs with grated cheese and black pepper',
-      'Combine hot pasta with pancetta',
-      'Remove from heat and mix with egg mixture',
-      'Serve immediately with extra cheese'
+      { description: 'Boil salted water and cook spaghetti until al dente', timeMinutes: 12 },
+      { description: 'Fry pancetta until crispy', timeMinutes: 5 },
+      { description: 'Whisk eggs with grated cheese and black pepper' },
+      { description: 'Combine hot pasta with pancetta' },
+      { description: 'Remove from heat and mix with egg mixture' },
+      { description: 'Serve immediately with extra cheese' }
     ],
-    cookingTime: 20,
-    servings: 4,
     difficulty: 'Medium',
-    tags: ['Italian', 'Pasta', 'Quick'],
-    createdAt: new Date(),
-    createdBy: 'system',
+    estimatedTime: 25,
+    servings: 4,
     likes: 0,
-    youtubeVideoId: 'dQw4w9WgXcQ' // Replace with actual cooking video ID
+    createdAt: new Date(),
+    lastSearched: new Date(),
+    searchCount: 1
   },
   {
-    id: 'recipe_2',
-    name: 'Chicken Tikka Masala',
+    recipeId: 'recipe_2',
+    recipeName: 'chicken tikka masala', // normalized lowercase
+    displayName: 'Chicken Tikka Masala', // display version
+    name: 'Chicken Tikka Masala', // frontend compatibility
     description: 'Creamy and flavorful Indian curry with tender chicken',
     ingredients: [
-      '500g chicken breast',
-      '200ml coconut milk',
-      '400g canned tomatoes',
-      '2 tbsp tikka masala paste',
-      '1 onion',
-      '3 garlic cloves',
-      'Fresh coriander',
-      'Basmati rice'
+      { name: 'chicken breast', quantity: '500g', unit: '' },
+      { name: 'coconut milk', quantity: '200ml', unit: '' },
+      { name: 'canned tomatoes', quantity: '400g', unit: '' },
+      { name: 'tikka masala paste', quantity: '2', unit: 'tbsp' },
+      { name: 'onion', quantity: '1', unit: 'large' },
+      { name: 'garlic cloves', quantity: '3', unit: 'pieces' },
+      { name: 'fresh coriander', quantity: '1', unit: 'bunch' },
+      { name: 'basmati rice', quantity: '300g', unit: '' }
     ],
     steps: [
-      'Cut chicken into chunks and marinate with spices',
-      'Fry chicken until golden',
-      'Sauté onions and garlic',
-      'Add tikka masala paste and tomatoes',
-      'Simmer with coconut milk',
-      'Add chicken back and cook until tender',
-      'Garnish with coriander and serve with rice'
+      { description: 'Cut chicken into chunks and marinate with spices', timeMinutes: 15 },
+      { description: 'Fry chicken until golden', timeMinutes: 8 },
+      { description: 'Sauté onions and garlic', timeMinutes: 5 },
+      { description: 'Add tikka masala paste and tomatoes', timeMinutes: 3 },
+      { description: 'Simmer with coconut milk', timeMinutes: 10 },
+      { description: 'Add chicken back and cook until tender', timeMinutes: 10 },
+      { description: 'Garnish with coriander and serve with rice' }
     ],
-    cookingTime: 45,
-    servings: 4,
     difficulty: 'Medium',
-    tags: ['Indian', 'Curry', 'Spicy'],
-    createdAt: new Date(),
-    createdBy: 'system',
+    estimatedTime: 50,
+    servings: 4,
     likes: 0,
-    youtubeVideoId: 'dQw4w9WgXcQ'
+    createdAt: new Date(),
+    lastSearched: new Date(),
+    searchCount: 1
   }
 ];
 
 const popularRecipes = [
   {
-    id: 'recipe_1',
-    name: 'Classic Spaghetti Carbonara',
+    recipeId: 'recipe_1', // Use recipeId instead of id
+    recipeName: 'classic spaghetti carbonara',
+    displayName: 'Classic Spaghetti Carbonara',
     likes: 127,
     views: 1540,
     lastUpdated: new Date()
   },
   {
-    id: 'recipe_2',
-    name: 'Chicken Tikka Masala',
+    recipeId: 'recipe_2',
+    recipeName: 'chicken tikka masala', 
+    displayName: 'Chicken Tikka Masala',
     likes: 89,
     views: 987,
     lastUpdated: new Date()
@@ -89,6 +96,17 @@ const popularRecipes = [
 // /popularRecipes/{recipeId} - Popular recipes with stats
 // /users/{userId} - User profiles
 // /userLikes/{userId}/recipes/{recipeId} - User's liked recipes
+// /analytics/{document=**} - Analytics and stats
+
+// Updated data structure changes:
+// - ingredients: now array of objects with {name, quantity, unit}
+// - steps: now array of objects with {description, timeMinutes (optional)}
+// - recipeId: MD5 hash of recipe name for consistent IDs
+// - recipeName: normalized lowercase name for searching
+// - displayName: human-readable name for display
+// - estimatedTime: total recipe time in minutes
+// - searchCount: track popularity
+// - lastSearched: for freshness tracking
 
 console.log('Sample data structure for Clove Recipe App');
 console.log('Recipes:', sampleRecipes);

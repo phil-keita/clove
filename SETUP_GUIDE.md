@@ -1,14 +1,15 @@
-# 🔑 API Keys & Credentials Setup Guide
+# API Keys & Credentials Setup Guide
 
 This guide will walk you through setting up all the required API keys and credentials for the Clove Recipe App.
 
-## 📋 **Prerequisites**
+## Prerequisites
 
-- [ ] Google/Gmail account (for Firebase and YouTube API)
+- [ ] Node.js v22.17.1 or higher (LTS recommended)
+- [ ] Google/Gmail account (for Firebase)
 - [ ] OpenAI account (for recipe generation)
 - [ ] Basic understanding of environment variables
 
-## 🔥 **1. Firebase Setup**
+## 1. Firebase Setup
 
 ### Step 1: Create Firebase Project
 
@@ -63,7 +64,7 @@ const firebaseConfig = {
 3. Click "Generate key" - this downloads a JSON file
 4. **Save this file securely** - you'll need it for the backend
 
-## 🤖 **2. OpenAI Setup**
+## 2. OpenAI Setup
 
 ### Step 1: Create OpenAI Account
 
@@ -75,7 +76,7 @@ const firebaseConfig = {
 
 1. Click "Create new secret key"
 2. Give it a name: `clove-recipe-app`
-3. **Copy and save the key** - you won't see it again!
+3. **Copy and save the key** - you won't see it again
 4. The key looks like: `sk-proj-abcd1234efgh5678ijkl9012mnop3456qrst7890uvwx`
 
 ### Step 3: Add Billing (if needed)
@@ -85,34 +86,7 @@ const firebaseConfig = {
 - Add payment method
 - Set usage limits for safety
 
-## ⚙️ **3. YouTube Data API Setup**
-
-### Step 1: Enable YouTube Data API
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Select your Firebase project (or create a new one)
-3. Navigate to **APIs & Services** > **Library**
-4. Search for "YouTube Data API v3"
-5. Click on it and press **Enable**
-
-### Step 2: Create API Credentials
-
-1. Go to **APIs & Services** > **Credentials**
-2. Click **Create Credentials** > **API Key**
-3. Copy the generated API key
-4. (Optional) Click on the key to restrict it:
-   - **Application restrictions**: None (or HTTP referrers for production)
-   - **API restrictions**: Restrict key to "YouTube Data API v3"
-5. Save the restrictions
-
-### Step 3: Verify Setup
-
-- Test the API key by making a request:
-  ```bash
-  curl "https://www.googleapis.com/youtube/v3/search?part=snippet&q=pasta+recipe&type=video&maxResults=3&key=YOUR_API_KEY"
-  ```
-
-## ⚙️ **4. Configure Environment Variables**
+## 3. Configure Environment Variables
 
 ### Frontend Configuration
 
@@ -153,7 +127,7 @@ const firebaseConfig = {
 
 3. Place your Firebase service account JSON file in the backend directory:
    ```bash
-   # Name it something like: serviceAccountKey.json
+   # Name it: serviceAccountKey.json
    ```
 
 4. Edit `.env` file:
@@ -164,7 +138,7 @@ const firebaseConfig = {
    # Your OpenAI API key
    OPENAI_API_KEY=sk-proj-abcd1234efgh5678ijkl9012mnop3456qrst7890uvwx
    
-   # Your YouTube Data API key
+   # Your YouTube Data API v3 key (optional - for video tutorials)
    YOUTUBE_API_KEY=AIzaSyC1234567890abcdefghijklmnopqrstuv
    
    # Path to your service account JSON file
@@ -176,13 +150,13 @@ const firebaseConfig = {
    CORS_ORIGIN=http://localhost:5173
    ```
 
-## 🚀 **5. Test the Setup**
+## 4. Test the Setup
 
 ### Start the Backend
 
 ```bash
 cd backend
-npm run dev
+npm start
 ```
 
 You should see:
@@ -212,19 +186,19 @@ Visit `http://localhost:5173` - the app should load without errors.
 2. Check the browser console for any errors
 3. The recipe should appear with AI-generated content
 
-## 🔒 **Security Notes**
+## Security Notes
 
-### ✅ **Safe to commit:**
+### Safe to commit:
 - `.env.example` files
 - Frontend environment variables (these are public in web apps)
 
-### ❌ **Never commit:**
+### Never commit:
 - `.env` files
 - Service account JSON files
 - OpenAI API keys
 - Any files containing secrets
 
-### 📁 **Add to .gitignore:**
+### Add to .gitignore:
 ```
 # Environment variables
 .env
@@ -239,7 +213,7 @@ firebase-service-account.json
 *.log
 ```
 
-## 🐛 **Troubleshooting**
+## Troubleshooting
 
 ### Common Issues:
 
@@ -259,7 +233,7 @@ firebase-service-account.json
    - Verify your Firebase web config
    - Check that Authentication is enabled
 
-## 💰 **Cost Estimates**
+## Cost Estimates
 
 ### Firebase (Free tier includes):
 - Authentication: 50,000 MAU
@@ -270,19 +244,22 @@ firebase-service-account.json
 - GPT-3.5 Turbo: ~$0.002 per recipe generation
 - **Cost: ~$1-5/month for testing**
 
-## ✅ **Verification Checklist**
+## Verification Checklist
 
+- [ ] Node.js v22.17.1+ installed (`node --version`)
 - [ ] Firebase project created
 - [ ] Authentication enabled (Email/Password)
 - [ ] Firestore database created
 - [ ] Firebase web config copied to frontend .env
 - [ ] Service account key downloaded and placed in backend
 - [ ] OpenAI API key obtained and added to backend .env
+- [ ] YouTube API key added to backend .env (optional)
 - [ ] Backend starts without errors
 - [ ] Frontend loads without errors
 - [ ] Can create user account
 - [ ] Can generate a recipe
+- [ ] Can view recipe videos (if YouTube API configured)
 
 ---
 
-Once you've completed these steps, your Clove Recipe App will be fully functional with AI-powered recipe generation and user authentication! 🎉
+Once you've completed these steps, your Clove Recipe App will be fully functional with AI-powered recipe generation and user authentication.

@@ -6,7 +6,6 @@ import { RecipeProvider } from './context/RecipeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navigation from './components/Navigation/Navigation';
 import Home from './pages/Home';
-import HomeSimple from './pages/HomeSimple';
 import Auth from './pages/Auth';
 import RecipeDetail from './pages/RecipeDetail';
 import CookingGuide from './pages/CookingGuide';

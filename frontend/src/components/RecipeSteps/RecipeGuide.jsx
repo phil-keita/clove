@@ -194,7 +194,7 @@ export default function RecipeGuide({ recipe }) {
             w="full"
           >
             <Heading size="md" color="green.700" mb={2}>
-              🎉 Recipe Complete!
+              Recipe Complete!
             </Heading>
             <Text color="green.600">
               Congratulations! You've finished cooking {recipe.displayName || recipe.recipeName}. 

@@ -87,7 +87,7 @@ const PopularRecipes = () => {
             </HStack>
 
             <Heading size="2xl" mb={4}>
-              Popular Recipes 🔥
+              Popular Recipes
             </Heading>
             
             <Text fontSize="lg" color="gray.600">
@@ -212,7 +212,7 @@ const PopularRecipes = () => {
                               </WrapItem>
                               <WrapItem>
                                 <Badge colorScheme="red" variant="subtle">
-                                  ❤️ {recipe.likes || 0} likes
+                                  {recipe.likes || 0} likes
                                 </Badge>
                               </WrapItem>
                             </Wrap>

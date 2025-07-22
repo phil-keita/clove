@@ -121,8 +121,27 @@ export const apiService = {
     } catch (error) {
       throw new Error('API health check failed');
     }
+  },
+
+  // Analyze video tutorial
+  analyzeVideoTutorial: async (recipeId, videoId) => {
+    try {
+      const response = await api.post(`/api/recipe/${recipeId}/analyze-video`, {
+        videoId: videoId
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to analyze video tutorial');
+    }
+  },
+
+  // Get YouTube videos for a recipe
+  getRecipeVideos: async (recipeId) => {
+    try {
+      const response = await api.get(`/api/recipe/${recipeId}/videos`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to get recipe videos');
+    }
   }
 };
-
-// Keep the old export for backward compatibility
-export const recipeService = apiService;

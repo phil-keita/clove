@@ -86,54 +86,17 @@ Return only valid JSON, no additional text.`;
       throw new Error('Invalid or missing estimated time in recipe');
     }
 
-    // Validate ingredient structure - more flexible validation
-    for (let i = 0; i < recipe.ingredients.length; i++) {
-      const ingredient = recipe.ingredients[i];
-      
-      // If ingredient is a string, try to parse it
-      if (typeof ingredient === 'string') {
-        // Try to parse "2 cups flour" format
-        const parts = ingredient.trim().split(' ');
-        if (parts.length >= 3) {
-          recipe.ingredients[i] = {
-            quantity: parts[0],
-            unit: parts[1],
-            name: parts.slice(2).join(' ')
-          };
-        } else {
-          // Set default values for missing parts
-          recipe.ingredients[i] = {
-            name: ingredient,
-            quantity: "1",
-            unit: "piece"
-          };
-        }
-      } else if (typeof ingredient === 'object') {
-        // Ensure all required fields exist, set defaults if missing
-        if (!ingredient.name) ingredient.name = "Unknown ingredient";
-        if (!ingredient.quantity) ingredient.quantity = "1";
-        if (!ingredient.unit) ingredient.unit = "piece";
-      } else {
-        throw new Error(`Invalid ingredient format at index ${i}`);
+    // Validate ingredient structure
+    for (const ingredient of recipe.ingredients) {
+      if (!ingredient.name || !ingredient.quantity || !ingredient.unit) {
+        throw new Error('Invalid ingredient structure - missing name, quantity, or unit');
       }
     }
 
-    // Validate step structure - more flexible validation
-    for (let i = 0; i < recipe.steps.length; i++) {
-      const step = recipe.steps[i];
-      
-      // If step is a string, convert it to object format
-      if (typeof step === 'string') {
-        recipe.steps[i] = {
-          description: step
-        };
-      } else if (typeof step === 'object') {
-        // Ensure description exists
-        if (!step.description || typeof step.description !== 'string') {
-          throw new Error(`Invalid step structure at index ${i} - missing or invalid description`);
-        }
-      } else {
-        throw new Error(`Invalid step format at index ${i}`);
+    // Validate step structure
+    for (const step of recipe.steps) {
+      if (!step.description || typeof step.description !== 'string') {
+        throw new Error('Invalid step structure - missing or invalid description');
       }
     }
 
@@ -200,34 +163,14 @@ Return only a JSON array of strings, no additional text.`;
     const response = completion.choices[0].message.content.trim();
     
     try {
-      const parsed = JSON.parse(response);
+      const suggestions = JSON.parse(response);
       
-      let suggestions;
-      
-      // Handle different response formats
-      if (Array.isArray(parsed)) {
-        // Direct array format
-        suggestions = parsed;
-      } else if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
-        // Object with suggestions array
-        suggestions = parsed.suggestions;
-      } else if (parsed.recipeTitles && Array.isArray(parsed.recipeTitles)) {
-        // Object with recipeTitles array
-        suggestions = parsed.recipeTitles;
-      } else if (parsed.recipe_titles && Array.isArray(parsed.recipe_titles)) {
-        // Object with recipe_titles array
-        suggestions = parsed.recipe_titles;
-      } else {
-        console.error('Invalid suggestions format:', parsed);
-        return [];
-      }
-      
-      // Validate that all items are strings
-      if (suggestions.every(item => typeof item === 'string')) {
+      // Validate that we got an array of strings
+      if (Array.isArray(suggestions) && suggestions.every(item => typeof item === 'string')) {
         // Return up to 5 suggestions
         return suggestions.slice(0, 5);
       } else {
-        console.error('Suggestions contain non-string items:', suggestions);
+        console.error('Invalid suggestions format:', suggestions);
         return [];
       }
     } catch (parseError) {
@@ -253,43 +196,97 @@ function getYouTubeSearchUrl(recipeName) {
 }
 
 /**
- * Fetch top YouTube videos for a recipe using YouTube Data API
- * @param {string} recipeName - Name of the recipe
- * @returns {Promise<Array>} - Array of top 3 video results
+ * Analyze a video tutorial and provide enhanced recipe instructions
+ * @param {Object} recipe - The original recipe data
+ * @param {Object} video - Video information with title, description, etc.
+ * @returns {Promise<Object>} - Enhanced recipe with video-based improvements
  */
-async function getYouTubeVideos(recipeName) {
-  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-  
-  if (!YOUTUBE_API_KEY) {
-    console.warn('YouTube API key not found. Video search disabled.');
-    return [];
-  }
-
+async function analyzeVideoTutorial(recipe, video) {
   try {
-    const searchQuery = encodeURIComponent(`${recipeName} recipe cooking tutorial`);
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${searchQuery}&key=${YOUTUBE_API_KEY}`;
-    
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    
-    if (data.error) {
-      console.error('YouTube API error:', data.error);
-      return [];
+    const prompt = `You are analyzing a cooking video tutorial to enhance a recipe. Here's the original recipe and video information:
+
+ORIGINAL RECIPE:
+Title: ${recipe.name}
+Ingredients: ${recipe.ingredients?.map(ing => `${ing.quantity} ${ing.unit} ${ing.name}`).join(', ')}
+Instructions: ${recipe.steps?.map((step, i) => `${i+1}. ${step.description}`).join('\n')}
+
+VIDEO INFORMATION:
+Title: ${video.title}
+Channel: ${video.channelTitle}
+Description: ${video.description || 'No description available'}
+
+Please analyze this video tutorial and enhance the original recipe instructions with insights that would likely come from watching the video. Focus on:
+1. Additional cooking tips or techniques
+2. Temperature details or timing adjustments
+3. Visual cues to look for
+4. Common mistakes to avoid
+5. Professional techniques
+
+Return a JSON object with enhanced instructions that incorporate video-based insights:
+{
+  "enhancedSteps": [
+    {
+      "description": "enhanced instruction with video insights",
+      "timeMinutes": optional_time_if_applicable,
+      "videoTip": "specific tip from video analysis"
     }
+  ],
+  "videoInsights": [
+    "Key insight 1 from video",
+    "Key insight 2 from video"
+  ],
+  "enhancedBy": "${video.title}"
+}
+
+Return only valid JSON.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional chef assistant that analyzes cooking videos to enhance recipes with practical cooking insights and techniques."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    const content = completion.choices[0].message.content.trim();
     
-    return data.items?.map(item => ({
-      videoId: item.id.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnail: item.snippet.thumbnails.medium.url,
-      channelTitle: item.snippet.channelTitle,
-      publishedAt: item.snippet.publishedAt,
-      url: `https://www.youtube.com/watch?v=${item.id.videoId}`
-    })) || [];
+    // Parse the JSON response
+    let enhancedRecipe;
+    try {
+      enhancedRecipe = JSON.parse(content);
+    } catch (parseError) {
+      console.error('Error parsing video analysis JSON:', parseError);
+      console.log('Raw content:', content);
+      
+      // Fallback response if JSON parsing fails
+      return {
+        enhancedSteps: recipe.steps || [],
+        videoInsights: ["Video analysis temporarily unavailable. Original recipe instructions preserved."],
+        enhancedBy: video.title,
+        error: "Failed to parse video analysis"
+      };
+    }
+
+    return enhancedRecipe;
     
   } catch (error) {
-    console.error('Error fetching YouTube videos:', error);
-    return [];
+    console.error('Error analyzing video tutorial:', error);
+    
+    // Return fallback response
+    return {
+      enhancedSteps: recipe.steps || [],
+      videoInsights: ["Video analysis temporarily unavailable. Please try again later."],
+      enhancedBy: video.title,
+      error: error.message
+    };
   }
 }
 
@@ -297,5 +294,5 @@ module.exports = {
   generateRecipe,
   generateRecipeSuggestions,
   getYouTubeSearchUrl,
-  getYouTubeVideos
+  analyzeVideoTutorial
 };

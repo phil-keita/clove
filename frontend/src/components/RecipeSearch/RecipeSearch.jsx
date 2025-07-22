@@ -6,7 +6,6 @@ import {
   Input,
   Button,
   VStack,
-  HStack,
   Heading,
   Text,
   Alert,
@@ -15,19 +14,18 @@ import {
   InputRightElement,
   useToast,
   Spinner,
-  Tag,
-  TagLabel,
-  Wrap,
-  WrapItem
+  List,
+  ListItem,
+  useColorModeValue
 } from '@chakra-ui/react';
-import { FaSearch, FaUtensils, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaUtensils } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useRecipe } from '../../context/RecipeContext';
 import { apiService } from '../../services/api';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
-const MotionTag = motion(Tag);
+const MotionListItem = motion(ListItem);
 
 export default function RecipeSearch({ onRecipeGenerated }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,52 +39,11 @@ export default function RecipeSearch({ onRecipeGenerated }) {
   const navigate = useNavigate();
   const searchInputRef = useRef();
 
-  // Reset everything to original state
-  const handleReset = () => {
-    setSearchTerm('');
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setSuggestionsLoading(false);
-    setSelectedRecipe('');
-    setSelectedSuggestionIndex(-1);
-    clearError();
-    
-    // Focus back on the input after state is updated
-    setTimeout(() => {
-      if (searchInputRef.current) {
-        searchInputRef.current.focus();
-      }
-    }, 100);
-  };
-
-  // Handle popular suggestion click - set term and search immediately
-  const handlePopularSuggestionClick = async (suggestion) => {
-    setSearchTerm(suggestion);
-    
-    // Trigger search immediately with the suggestion
-    setSuggestionsLoading(true);
-    try {
-      clearError();
-      const response = await apiService.getRecipeSuggestions(suggestion.trim());
-      setSuggestions(response.suggestions || []);
-      setShowSuggestions(true);
-      setSelectedSuggestionIndex(-1);
-      setSelectedRecipe(''); // Reset selected recipe
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to get recipe suggestions. Please try again.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-      setSuggestions([]);
-      setShowSuggestions(false);
-    } finally {
-      setSuggestionsLoading(false);
-    }
-  };
+  // Chakra UI color values
+  const suggestionsBg = useColorModeValue('white', 'gray.700');
+  const suggestionsBorder = useColorModeValue('gray.200', 'gray.600');
+  const suggestionHoverBg = useColorModeValue('blue.50', 'blue.900');
+  const suggestionSelectedBg = useColorModeValue('blue.100', 'blue.800');
 
   // Handle search button click - fetch suggestions
   const handleSearch = async (e) => {
@@ -298,7 +255,7 @@ export default function RecipeSearch({ onRecipeGenerated }) {
           </Alert>
         )}
 
-        <Box w="full">
+        <Box w="full" position="relative">
           <form onSubmit={selectedRecipe ? handleGenerateRecipe : handleSearch}>
             <VStack spacing={4}>
               <InputGroup size="lg">
@@ -341,51 +298,64 @@ export default function RecipeSearch({ onRecipeGenerated }) {
                 </InputRightElement>
               </InputGroup>
 
-              {/* Suggestions as Horizontal Bubbles */}
+              {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <Box w="full" mt={4}>
+                <Box
+                  position="absolute"
+                  top="100%"
+                  left={0}
+                  right={0}
+                  zIndex={1000}
+                  bg={suggestionsBg}
+                  border="1px"
+                  borderColor={suggestionsBorder}
+                  borderRadius="md"
+                  boxShadow="lg"
+                  maxH="300px"
+                  overflowY="auto"
+                >
                   {suggestionsLoading ? (
-                    <HStack spacing={2} justify="center">
+                    <Box p={4} textAlign="center">
                       <Spinner size="sm" />
-                      <Text fontSize="sm" color="gray.500">
+                      <Text ml={2} fontSize="sm" color="gray.500">
                         Finding suggestions...
                       </Text>
-                    </HStack>
+                    </Box>
                   ) : suggestions.length > 0 ? (
-                    <VStack spacing={3} align="stretch">
-                      <Text fontSize="sm" color="gray.600" fontWeight="medium" textAlign="center">
-                        Select a recipe:
-                      </Text>
-                      <Wrap spacing={2}>
-                        {suggestions.map((suggestion, index) => (
-                          <WrapItem key={index}>
-                            <MotionTag
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: index * 0.1 }}
-                              size="lg"
-                              variant={suggestion === selectedRecipe ? "solid" : "outline"}
-                              colorScheme={suggestion === selectedRecipe ? "green" : "blue"}
-                              cursor="pointer"
-                              _hover={{ 
-                                transform: "scale(1.05)",
-                                boxShadow: "md"
-                              }}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              borderWidth={selectedSuggestionIndex === index ? "2px" : "1px"}
-                              borderColor={selectedSuggestionIndex === index ? "blue.400" : undefined}
-                            >
-                              <TagLabel>
-                                {suggestion}
-                                {suggestion === selectedRecipe && " ✓"}
-                              </TagLabel>
-                            </MotionTag>
-                          </WrapItem>
-                        ))}
-                      </Wrap>
-                    </VStack>
+                    <List>
+                      {suggestions.map((suggestion, index) => (
+                        <MotionListItem
+                          key={index}
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          p={3}
+                          cursor="pointer"
+                          bg={
+                            selectedSuggestionIndex === index
+                              ? suggestionSelectedBg
+                              : suggestion === selectedRecipe
+                              ? "green.50"
+                              : suggestionsBg
+                          }
+                          _hover={{ bg: suggestionHoverBg }}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          borderBottom={index < suggestions.length - 1 ? "1px" : "none"}
+                          borderColor={suggestionsBorder}
+                        >
+                          <Text fontSize="md" fontWeight="medium">
+                            {suggestion}
+                            {suggestion === selectedRecipe && (
+                              <Text as="span" fontSize="sm" color="green.600" ml={2}>
+                                ✓ Selected
+                              </Text>
+                            )}
+                          </Text>
+                        </MotionListItem>
+                      ))}
+                    </List>
                   ) : searchTerm.trim().length >= 3 ? (
-                    <Box textAlign="center" py={2}>
+                    <Box p={4} textAlign="center">
                       <Text fontSize="sm" color="gray.500">
                         No suggestions found
                       </Text>
@@ -394,67 +364,41 @@ export default function RecipeSearch({ onRecipeGenerated }) {
                 </Box>
               )}
 
-              {!showSuggestions && (
-                <Button
-                  type="submit"
-                  colorScheme={selectedRecipe ? "green" : "blue"}
-                  size="lg"
-                  width="full"
-                  isLoading={loading || suggestionsLoading}
-                  loadingText={selectedRecipe ? "Generating Recipe..." : "Searching..."}
-                  leftIcon={selectedRecipe ? <FaUtensils /> : <FaSearch />}
-                >
-                  {selectedRecipe ? `Generate Recipe: ${selectedRecipe}` : "Search for Recipes"}
-                </Button>
-              )}
-
-              {/* Cancel Button - Show only when suggestions are visible */}
-              {showSuggestions && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  colorScheme="gray"
-                  leftIcon={<FaTimes />}
-                  onClick={handleReset}
-                  alignSelf="center"
-                  mt={2}
-                  _hover={{ bg: 'gray.100' }}
-                >
-                  Cancel
-                </Button>
-              )}
+              <Button
+                type="submit"
+                colorScheme={selectedRecipe ? "green" : "blue"}
+                size="lg"
+                width="full"
+                isLoading={loading || suggestionsLoading}
+                loadingText={selectedRecipe ? "Generating Recipe..." : "Searching..."}
+                leftIcon={selectedRecipe ? <FaUtensils /> : <FaSearch />}
+              >
+                {selectedRecipe ? `Generate Recipe: ${selectedRecipe}` : "Search for Recipes"}
+              </Button>
             </VStack>
           </form>
         </Box>
 
-        {!selectedRecipe && !showSuggestions && (
+        {!selectedRecipe && (
           <Box w="full">
-            <Text fontSize="sm" color="gray.600" fontWeight="medium" mb={3} textAlign="center">
+            <Text fontSize="sm" color="gray.500" mb={3} textAlign="center">
               Popular suggestions:
             </Text>
-            <Wrap spacing={2} justify="center">
+            <VStack spacing={2}>
               {popularSuggestions.map((suggestion, index) => (
-                <WrapItem key={index}>
-                  <MotionTag
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    size="lg"
-                    variant="outline"
-                    colorScheme="gray"
-                    cursor="pointer"
-                    _hover={{ 
-                      transform: "scale(1.05)",
-                      boxShadow: "md",
-                      colorScheme: "blue"
-                    }}
-                    onClick={() => handlePopularSuggestionClick(suggestion)}
-                  >
-                    <TagLabel>{suggestion}</TagLabel>
-                  </MotionTag>
-                </WrapItem>
+                <Button
+                  key={index}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchTerm(suggestion)}
+                  _hover={{ bg: 'gray.100' }}
+                  width="full"
+                  justifyContent="flex-start"
+                >
+                  {suggestion}
+                </Button>
               ))}
-            </Wrap>
+            </VStack>
           </Box>
         )}
       </VStack>

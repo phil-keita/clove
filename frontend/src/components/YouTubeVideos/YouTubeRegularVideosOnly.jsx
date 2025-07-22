@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
-  Grid,
   Text,
   Spinner,
   Alert,
@@ -10,11 +9,12 @@ import {
   VStack,
   HStack,
   Badge,
+  Button,
 } from '@chakra-ui/react';
 import YouTube from 'react-youtube';
-import { api } from '../../services/api';
+import { apiService } from '../../services/api';
 
-const YouTubeVideos = ({ recipeId, recipeName }) => {
+const YouTubeRegularVideosOnly = ({ recipeId, recipeName, onUseVideoTutorial, activeVideoEnhancement, videoEnhancementLoading }) => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,11 +27,12 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
         setLoading(true);
         setError(null);
         
-        const response = await api.get(`/recipe/${recipeId}/videos`);
-        setVideos(response.data.videos || []);
+        const response = await apiService.getRecipeVideos(recipeId);
+        console.log('Regular videos API response:', response);
+        setVideos(response.regularVideos || []);
         
       } catch (error) {
-        console.error('Error fetching videos:', error);
+        console.error('Error fetching regular videos:', error);
         setError('Failed to load recipe videos');
       } finally {
         setLoading(false);
@@ -40,16 +41,6 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
 
     fetchVideos();
   }, [recipeId]);
-
-  const youtubeOpts = {
-    height: '200',
-    width: '100%',
-    playerVars: {
-      autoplay: 0,
-      modestbranding: 1,
-      rel: 0,
-    },
-  };
 
   if (loading) {
     return (
@@ -62,17 +53,17 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
 
   if (error) {
     return (
-      <Alert status="warning" borderRadius="md">
+      <Alert status="error">
         <AlertIcon />
         {error}
       </Alert>
     );
   }
 
-  if (!videos || videos.length === 0) {
+  if (videos.length === 0) {
     return (
       <Box textAlign="center" py={8}>
-        <Text color="gray.600">No videos found for this recipe</Text>
+        <Text color="gray.600">No video tutorials found for this recipe.</Text>
       </Box>
     );
   }
@@ -83,10 +74,7 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
         Recipe Video Tutorials
       </Heading>
       
-      <Grid 
-        templateColumns={{ base: '1fr', md: 'repeat(auto-fit, minmax(320px, 1fr))' }}
-        gap={6}
-      >
+      <VStack spacing={6} align="stretch">
         {videos.map((video) => (
           <Box 
             key={video.videoId}
@@ -99,11 +87,31 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
             transition="transform 0.2s"
             _hover={{ transform: 'translateY(-2px)', boxShadow: 'md' }}
           >
-            <Box position="relative">
+            <Box 
+              position="relative"
+              bg="blue.50"
+              w="100%"
+              h="200px"
+              overflow="hidden"
+            >
               <YouTube 
                 videoId={video.videoId} 
-                opts={youtubeOpts}
-                style={{ width: '100%' }}
+                opts={{
+                  height: '200',
+                  width: '100%',
+                  playerVars: {
+                    autoplay: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                  },
+                }}
+                style={{ 
+                  width: '100%',
+                  height: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0
+                }}
               />
             </Box>
             
@@ -118,8 +126,8 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
                 {video.title}
               </Text>
               
-              <HStack spacing={2}>
-                <Badge colorScheme="green" fontSize="xs">
+              <HStack spacing={2} wrap="wrap">
+                <Badge colorScheme="orange" fontSize="xs">
                   {video.channelTitle}
                 </Badge>
               </HStack>
@@ -128,18 +136,33 @@ const YouTubeVideos = ({ recipeId, recipeName }) => {
                 <Text 
                   fontSize="xs" 
                   color="gray.600"
-                  noOfLines={3}
+                  noOfLines={2}
                   lineHeight="1.3"
                 >
                   {video.description}
                 </Text>
               )}
+              
+              {onUseVideoTutorial && (
+                <Button
+                  size="sm"
+                  colorScheme="orange"
+                  variant={activeVideoEnhancement === video.videoId ? "solid" : "outline"}
+                  isLoading={videoEnhancementLoading === video.videoId}
+                  loadingText="Analyzing..."
+                  onClick={() => onUseVideoTutorial(video)}
+                  width="full"
+                  mt={2}
+                >
+                  {activeVideoEnhancement === video.videoId ? "Tutorial Applied" : "Use Tutorial"}
+                </Button>
+              )}
             </VStack>
           </Box>
         ))}
-      </Grid>
+      </VStack>
     </Box>
   );
 };
 
-export default YouTubeVideos;
+export default YouTubeRegularVideosOnly;

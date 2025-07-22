@@ -175,7 +175,7 @@ export default function RecipeStep({ step, stepNumber, isActive }) {
               
               {timeLeft === 0 && hasStarted && (
                 <Text fontSize="sm" color="green.600" fontWeight="bold">
-                  ✅ Timer Complete!
+                  Timer Complete!
                 </Text>
               )}
             </VStack>

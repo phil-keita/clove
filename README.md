@@ -1,42 +1,48 @@
-# Clove - Recipe Learning App 🍳
+# Clove - Recipe Learning App
 
 A React web application that helps users learn how to cook with AI-generated recipes, step-by-step guides, and integrated YouTube videos.
 
 ## Features
 
-- 🔍 **Recipe Search**: AI-powered recipe generation using OpenAI GPT-3.5 Turbo
-- 📋 **Step-by-step Guides**: Interactive cooking instructions with timers
-- 🎥 **YouTube Integration**: Watch cooking videos alongside recipes
-- ❤️ **Recipe Management**: Like, save, and organize favorite recipes
-- 👥 **User Accounts**: Firebase authentication with profile management
-- 📱 **Responsive Design**: Beautiful UI with Chakra UI and Framer Motion animations
-- 🔥 **Popular Recipes**: Discover trending recipes from the community
+- **Recipe Search**: AI-powered recipe generation using OpenAI GPT-3.5 Turbo
+- **Step-by-step Guides**: Interactive cooking instructions with timers
+- **YouTube Integration**: Watch cooking videos alongside recipes
+- **Recipe Management**: Like, save, and organize favorite recipes
+- **User Accounts**: Firebase authentication with profile management
+- **Responsive Design**: Beautiful UI with Chakra UI and Framer Motion animations
+- **Popular Recipes**: Discover trending recipes from the community
 
 ## Tech Stack
 
 ### Frontend
-- React with Vite
-- Chakra UI for components
+- React 19.1.0 with Vite 5.4.19
+- Chakra UI for components and styling
 - Framer Motion for animations
-- React Router for navigation
+- React Router DOM for navigation
 - Firebase SDK for authentication
 - Axios for API calls
 - React YouTube for video integration
+- React Icons for iconography
 
 ### Backend
-- Node.js with Express
-- Firebase Admin SDK
-- OpenAI GPT-3.5 Turbo API
+- Node.js with Express 4.21.2
+- Firebase Admin SDK for server-side Firebase operations
+- OpenAI 5.10.1 API for recipe generation
+- YouTube Data API v3 for video tutorials
 - Firestore for data storage
+- Axios for HTTP requests
+- CORS for cross-origin requests
+- dotenv for environment variable management
 
 ## Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
+- Node.js (v22.17.1 or higher recommended - LTS version)
 - Firebase project 
 - OpenAI API key
+- YouTube Data API key (optional for video tutorials)
 
-### 🚀 **Quick Setup**
+### Quick Setup
 
 1. **Clone and Install Dependencies**
 ```bash
@@ -53,7 +59,8 @@ cd ../frontend && npm install
 3. **Get API Keys & Credentials**
    - **Firebase**: Create project, enable auth, get web config & service account
    - **OpenAI**: Get API key from platform.openai.com
-   - **Detailed instructions**: See `SETUP_GUIDE.md`
+   - **YouTube**: Get YouTube Data API v3 key from Google Cloud Console (optional)
+   - **Detailed instructions**: See `SETUP_GUIDE.md` and `YOUTUBE_SETUP.md`
 
 4. **Configure Environment Variables**
 ```bash
@@ -65,13 +72,13 @@ cd ../frontend && npm install
 5. **Run the Application**
 ```bash
 # Terminal 1 - Backend
-cd backend && npm run dev
+cd backend && npm start
 
 # Terminal 2 - Frontend  
 cd frontend && npm run dev
 ```
 
-📱 **App available at**: `http://localhost:5173`
+**App available at**: `http://localhost:5173`
 
 ## Project Structure
 
@@ -101,21 +108,26 @@ clove/
 - `npm run dev` - Run development server with nodemon
 
 ### Frontend
-- `npm run dev` - Start development server
+- `npm run dev` - Start development server (Vite)
 - `npm run build` - Build for production
-- `npm run preview` - Preview production build
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint code analysis
 
 ## API Endpoints
 
 - `POST /api/recipe/generate` - Generate recipe from description
-- `GET /api/recipe/popular` - Get popular recipes
-- `GET /api/recipe/user/:userId/liked` - Get user's liked recipes
-- `POST /api/recipe/like` - Like a recipe
-- `DELETE /api/recipe/like` - Unlike a recipe
+- `POST /api/recipe/suggestions` - Get AI-powered recipe suggestions
+- `GET /api/recipe/:recipeId` - Get specific recipe by ID
+- `GET /api/recipe/:recipeId/videos` - Get YouTube videos for recipe
+- `POST /api/recipe/:recipeId/analyze-video` - Analyze video tutorial for recipe enhancement
+- `GET /api/recipes/popular` - Get popular recipes
+- `GET /api/user/liked-recipes` - Get user's liked recipes
+- `POST /api/recipe/like` - Like/unlike a recipe
+- `GET /api/health` - API health check
 
-## 🚦 **Current Status**
+## Current Status
 
-### ✅ **Working Without API Keys**
+### Working Without API Keys
 The frontend is fully functional and you can explore the UI:
 - **Home page** with beautiful design
 - **Navigation** and routing between pages
@@ -125,13 +137,13 @@ The frontend is fully functional and you can explore the UI:
 - **Profile and liked recipes** pages
 - **Responsive design** and animations
 
-### 🔑 **Requires API Keys for Full Functionality**
+### Requires API Keys for Full Functionality
 - **Recipe generation** (needs OpenAI API key)
 - **User authentication** (needs Firebase config)
 - **Recipe saving/liking** (needs Firebase + authentication)
 - **Popular recipes** (needs Firebase database)
 
-### 🧑‍💻 **Development Mode**
+### Development Mode
 Currently running at `http://localhost:5173` with:
 - Hot module replacement
 - Error overlay

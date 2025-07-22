@@ -230,7 +230,7 @@ const LikedRecipes = () => {
                               </WrapItem>
                               <WrapItem>
                                 <Badge colorScheme="green">
-                                  ❤️ {recipe.likes || 0}
+                                  {recipe.likes || 0} likes
                                 </Badge>
                               </WrapItem>
                             </Wrap>
